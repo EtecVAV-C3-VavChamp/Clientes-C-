@@ -1,0 +1,566 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="list-page">
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header-modern">
+            <div class="header-content">
+                <div class="header-icon primary">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="header-text">
+                    <h1>Lista de Clientes</h1>
+                    <p>Gerencie todos os clientes cadastrados no sistema</p>
+                </div>
+            </div>
+            <a href="{{ url_for('adicionar') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus me-2"></i>Novo Cliente
+            </a>
+        </div>
+
+        <!-- Alertas -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert-modern alert-{{ 'error' if category == 'error' else 'success' }}">
+                        <i class="bi bi-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Filtros e Busca -->
+        <div class="filters-card">
+            <div class="filters-header">
+                <h5><i class="bi bi-funnel me-2"></i>Filtros e Busca</h5>
+            </div>
+            <div class="filters-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="search-group">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" id="searchInput" class="search-input"
+                                   placeholder="Buscar por nome, CPF, email, cidade...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterCity" class="form-control-modern">
+                            <option value="">Todas as cidades</option>
+                            {% for cidade in cidades %}
+                            <option value="{{ cidade }}">{{ cidade }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterState" class="form-control-modern">
+                            <option value="">Todos os estados</option>
+                            {% for estado in estados %}
+                            <option value="{{ estado }}">{{ estado }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if clientes %}
+        <!-- Estatísticas -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-icon-wrapper primary">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ clientes|length }}</h3>
+                    <p>Total de Clientes</p>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon-wrapper success">
+                    <i class="bi bi-geo-alt-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ cidades|length }}</h3>
+                    <p>Cidades</p>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon-wrapper warning">
+                    <i class="bi bi-building-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ estados|length }}</h3>
+                    <p>Estados</p>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon-wrapper info">
+                    <i class="bi bi-briefcase-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ ocupacoes|length }}</h3>
+                    <p>Profissões</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Clientes -->
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="modern-table" id="clientesTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>CPF</th>
+                            <th>Nascimento</th>
+                            <th>Telefone</th>
+                            <th>Email</th>
+                            <th>Ocupação</th>
+                            <th>Cidade/UF</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        <tr class="table-row">
+                            <td data-label="ID">
+                                <span class="id-badge">{{ cliente.id }}</span>
+                            </td>
+                            <td data-label="Nome" class="client-name">
+                                <strong>{{ cliente.nome }}</strong>
+                            </td>
+                            <td data-label="CPF" class="client-cpf">
+                                {{ cliente.cpf|format_cpf }}
+                            </td>
+                            <td data-label="Nascimento" class="client-birth">
+                                {% if cliente.data_nasc %}
+                                    {{ cliente.data_nasc.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td data-label="Telefone" class="client-phone">
+                                {{ cliente.telefone_principal|format_telefone }}
+                            </td>
+                            <td data-label="Email" class="client-email">
+                                <span title="{{ cliente.email_principal }}">{{ cliente.email_principal|truncate(20) }}</span>
+                            </td>
+                            <td data-label="Ocupação">
+                                <span class="occupation-badge">{{ cliente.ocupacao }}</span>
+                            </td>
+                            <td data-label="Localização" class="client-location">
+                                <small>{{ cliente.cidade }}/{{ cliente.estado }}</small>
+                            </td>
+                            <td data-label="Ações">
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('editar', id=cliente.id) }}"
+                                       class="btn-action btn-edit"
+                                       title="Editar cliente">
+                                        <i class="bi bi-pencil"></i>
+                                        <span>Editar</span>
+                                    </a>
+                                    <button type="button"
+                                            class="btn-action btn-delete"
+                                            data-cliente-id="{{ cliente.id }}"
+                                            data-cliente-nome="{{ cliente.nome }}"
+                                            title="Excluir cliente">
+                                        <i class="bi bi-trash"></i>
+                                        <span>Excluir</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="table-footer">
+            <div class="footer-info">
+                <i class="bi bi-info-circle me-2"></i> Total de {{ clientes|length }} cliente(s) cadastrado(s)
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Estado vazio -->
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <h3>Nenhum cliente cadastrado</h3>
+            <p>Comece cadastrando o primeiro cliente no sistema.</p>
+            <a href="{{ url_for('adicionar') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus me-2"></i>Cadastrar Primeiro Cliente
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Busca em tempo real
+    const searchInput = document.getElementById('searchInput');
+    const filterCity = document.getElementById('filterCity');
+    const filterState = document.getElementById('filterState');
+    const rows = document.querySelectorAll('.table-row');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const cityFilter = filterCity.value;
+        const stateFilter = filterState.value;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const city = row.cells[7].textContent.split('/')[0].trim();
+            const state = row.cells[7].textContent.split('/')[1].trim();
+            
+            const matchesSearch = text.includes(searchTerm);
+            const matchesCity = !cityFilter || city === cityFilter;
+            const matchesState = !stateFilter || state === stateFilter;
+
+            row.style.display = (matchesSearch && matchesCity && matchesState) ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterTable);
+    filterCity.addEventListener('change', filterTable);
+    filterState.addEventListener('change', filterTable);
+
+    // Confirmação de exclusão
+    const deleteButtons = document.querySelectorAll('.btn-delete');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const clienteNome = this.getAttribute('data-cliente-nome');
+            const clienteId = this.getAttribute('data-cliente-id');
+
+            if (confirm(`Tem certeza que deseja excluir o cliente "${clienteNome}"?\n\nEsta ação não pode ser desfeita!`)) {
+                window.location.href = "{{ url_for('excluir', id=0) }}".replace('0', clienteId);
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.list-page {
+    padding: 2rem 0;
+    min-height: calc(100vh - 120px);
+}
+
+.filters-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-xl);
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.filters-header {
+    padding: 1.5rem 2rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.filters-header h5 {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0;
+}
+
+.filters-body {
+    padding: 1.5rem 2rem;
+}
+
+.search-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-light);
+    z-index: 10;
+}
+
+.search-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--bg-primary);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-icon-wrapper.primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
+.stat-icon-wrapper.success {
+    background: linear-gradient(135deg, var(--success), #34d399);
+}
+
+.stat-icon-wrapper.warning {
+    background: linear-gradient(135deg, var(--warning), #fbbf24);
+}
+
+.stat-icon-wrapper.info {
+    background: linear-gradient(135deg, var(--info), #22d3ee);
+}
+
+.stat-content h3 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1;
+}
+
+.stat-content p {
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0;
+    font-weight: 500;
+}
+
+.table-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table thead {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+}
+
+.modern-table thead th {
+    color: white;
+    padding: 1.25rem 1rem;
+    font-weight: 600;
+    text-align: left;
+    border: none;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modern-table tbody td {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.modern-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table-row {
+    transition: all 0.3s ease;
+}
+
+.table-row:hover {
+    background: var(--bg-tertiary);
+}
+
+.id-badge {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.client-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.client-cpf, .client-birth, .client-phone, .client-email, .client-location {
+    color: var(--text-secondary);
+}
+
+.occupation-badge {
+    background: rgba(6, 182, 212, 0.1);
+    color: var(--info);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-edit {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.btn-edit:hover {
+    background: var(--warning);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+}
+
+.btn-delete:hover {
+    background: var(--error);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.table-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.footer-info {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-xl);
+    padding: 4rem 2rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    font-size: 1.125rem;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn-action span {
+        display: none;
+    }
+    
+    .modern-table {
+        font-size: 0.875rem;
+    }
+    
+    .modern-table thead {
+        display: none;
+    }
+    
+    .modern-table tbody td {
+        display: block;
+        text-align: right;
+        padding: 0.75rem;
+        position: relative;
+    }
+    
+    .modern-table tbody td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+}
+</style>
+{% endblock %}
